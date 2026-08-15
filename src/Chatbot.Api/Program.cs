@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Chatbot.Api.Errors;
+using Chatbot.Api.Contacts;
 using Chatbot.Api.Identity;
 using Chatbot.Api.Logging;
 using Chatbot.Api.Middleware;
@@ -25,6 +26,12 @@ builder.Services.AddScoped<IBusinessHoursStore>(provider => provider.GetRequired
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ChannelService>();
 builder.Services.AddScoped<BusinessHoursService>();
+builder.Services.AddSingleton<WhatsAppAddressNormalizer>();
+builder.Services.AddScoped<SqlContactStore>();
+builder.Services.AddScoped<IContactStore>(provider => provider.GetRequiredService<SqlContactStore>());
+builder.Services.AddScoped<IChannelIdentityStore>(provider => provider.GetRequiredService<SqlContactStore>());
+builder.Services.AddScoped<ContactService>();
+builder.Services.AddScoped<ChannelIdentityService>();
 builder.Services
     .AddAuthentication("Bearer")
     .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("Bearer", _ => { });
@@ -32,6 +39,7 @@ builder.Services.AddAuthorization(options =>
 {
     UserPermissions.AddPolicies(options);
     ProjectPermissions.AddPolicies(options);
+    ContactPermissions.AddPolicies(options);
 });
 
 var app = builder.Build();

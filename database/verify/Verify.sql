@@ -183,3 +183,54 @@ IF EXISTS
     THROW 51203, 'A V0003 permission is missing.', 1;
 
 SELECT N'V0003 verification passed.' AS Result;
+
+IF SCHEMA_ID(N'contact') IS NULL
+    THROW 51301, 'contact schema is missing.', 1;
+
+DECLARE @RequiredContactObjects TABLE
+(
+    ObjectName sysname NOT NULL,
+    ObjectType char(2) NOT NULL
+);
+
+INSERT @RequiredContactObjects (ObjectName, ObjectType)
+VALUES
+    (N'[contact].Contacts', N'U'),
+    (N'[contact].ChannelIdentities', N'U'),
+    (N'[contact].Contact_Create', N'P'),
+    (N'[contact].Contact_GetByPublicId', N'P'),
+    (N'[contact].Contact_Update', N'P'),
+    (N'[contact].Contact_SetActive', N'P'),
+    (N'[contact].ChannelIdentity_Create', N'P'),
+    (N'[contact].ChannelIdentity_GetByPublicId', N'P'),
+    (N'[contact].ChannelIdentity_Update', N'P'),
+    (N'[contact].ChannelIdentity_SetActive', N'P'),
+    (N'[contact].ChannelIdentity_SetVerified', N'P'),
+    (N'[contact].ChannelIdentity_GetByExternalId', N'P');
+
+DECLARE @MissingContactObject sysname =
+(
+    SELECT TOP (1) ObjectName
+    FROM @RequiredContactObjects
+    WHERE OBJECT_ID(ObjectName, ObjectType) IS NULL
+    ORDER BY ObjectName
+);
+
+IF @MissingContactObject IS NOT NULL
+BEGIN
+    DECLARE @MissingContactMessage nvarchar(2048) = CONCAT(@MissingContactObject, ' is missing.');
+    THROW 51302, @MissingContactMessage, 1;
+END;
+
+IF EXISTS
+(
+    SELECT required.Code
+    FROM (VALUES ('contacts.read'), ('contacts.manage')) required(Code)
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM [identity].Permissions permission WHERE permission.Code = required.Code
+    )
+)
+    THROW 51303, 'A V0004 permission is missing.', 1;
+
+SELECT N'V0004 verification passed.' AS Result;
