@@ -3,10 +3,10 @@ SET XACT_ABORT ON;
 GO
 
 IF SCHEMA_ID(N'identity') IS NULL
-    EXEC(N'CREATE SCHEMA identity AUTHORIZATION dbo;');
+    EXEC(N'CREATE SCHEMA [identity] AUTHORIZATION dbo;');
 GO
 
-CREATE TABLE identity.Users
+CREATE TABLE [identity].Users
 (
     UserId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_Users PRIMARY KEY,
     PublicId uniqueidentifier NOT NULL CONSTRAINT DF_Users_PublicId DEFAULT NEWSEQUENTIALID(),
@@ -25,7 +25,7 @@ CREATE TABLE identity.Users
     CONSTRAINT CK_Users_FailedLoginCount CHECK (FailedLoginCount >= 0)
 );
 
-CREATE TABLE identity.Roles
+CREATE TABLE [identity].Roles
 (
     RoleId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_Roles PRIMARY KEY,
     PublicId uniqueidentifier NOT NULL CONSTRAINT DF_Roles_PublicId DEFAULT NEWSEQUENTIALID(),
@@ -36,7 +36,7 @@ CREATE TABLE identity.Roles
     CONSTRAINT UQ_Roles_Code UNIQUE (Code)
 );
 
-CREATE TABLE identity.Permissions
+CREATE TABLE [identity].Permissions
 (
     PermissionId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_Permissions PRIMARY KEY,
     Code varchar(150) NOT NULL,
@@ -45,25 +45,25 @@ CREATE TABLE identity.Permissions
     CONSTRAINT UQ_Permissions_Code UNIQUE (Code)
 );
 
-CREATE TABLE identity.UserRoles
+CREATE TABLE [identity].UserRoles
 (
     UserId bigint NOT NULL,
     RoleId int NOT NULL,
     CONSTRAINT PK_UserRoles PRIMARY KEY (UserId, RoleId),
-    CONSTRAINT FK_UserRoles_Users FOREIGN KEY (UserId) REFERENCES identity.Users(UserId),
-    CONSTRAINT FK_UserRoles_Roles FOREIGN KEY (RoleId) REFERENCES identity.Roles(RoleId)
+    CONSTRAINT FK_UserRoles_Users FOREIGN KEY (UserId) REFERENCES [identity].Users(UserId),
+    CONSTRAINT FK_UserRoles_Roles FOREIGN KEY (RoleId) REFERENCES [identity].Roles(RoleId)
 );
 
-CREATE TABLE identity.RolePermissions
+CREATE TABLE [identity].RolePermissions
 (
     RoleId int NOT NULL,
     PermissionId int NOT NULL,
     CONSTRAINT PK_RolePermissions PRIMARY KEY (RoleId, PermissionId),
-    CONSTRAINT FK_RolePermissions_Roles FOREIGN KEY (RoleId) REFERENCES identity.Roles(RoleId),
-    CONSTRAINT FK_RolePermissions_Permissions FOREIGN KEY (PermissionId) REFERENCES identity.Permissions(PermissionId)
+    CONSTRAINT FK_RolePermissions_Roles FOREIGN KEY (RoleId) REFERENCES [identity].Roles(RoleId),
+    CONSTRAINT FK_RolePermissions_Permissions FOREIGN KEY (PermissionId) REFERENCES [identity].Permissions(PermissionId)
 );
 
-INSERT identity.Permissions (Code, Name)
+INSERT [identity].Permissions (Code, Name)
 VALUES
     ('users.read', N'Read users'),
     ('users.create', N'Create users'),
@@ -71,12 +71,12 @@ VALUES
     ('users.password.reset', N'Reset user passwords'),
     ('users.roles.manage', N'Manage user roles');
 
-IF EXISTS (SELECT 1 FROM identity.Roles WHERE Code = 'ADMIN')
+IF EXISTS (SELECT 1 FROM [identity].Roles WHERE Code = 'ADMIN')
 BEGIN
-    INSERT identity.RolePermissions (RoleId, PermissionId)
+    INSERT [identity].RolePermissions (RoleId, PermissionId)
     SELECT role.RoleId, permission.PermissionId
-    FROM identity.Roles role
-    CROSS JOIN identity.Permissions permission
+    FROM [identity].Roles role
+    CROSS JOIN [identity].Permissions permission
     WHERE role.Code = 'ADMIN'
       AND permission.Code IN
       (
@@ -88,7 +88,7 @@ BEGIN
       );
 END;
 
-CREATE TABLE identity.RefreshTokens
+CREATE TABLE [identity].RefreshTokens
 (
     RefreshTokenId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_RefreshTokens PRIMARY KEY,
     UserId bigint NOT NULL,
@@ -98,15 +98,15 @@ CREATE TABLE identity.RefreshTokens
     RevokedAtUtc datetime2(3) NULL,
     ReplacedByTokenId bigint NULL,
     CONSTRAINT UQ_RefreshTokens_TokenHash UNIQUE (TokenHash),
-    CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserId) REFERENCES identity.Users(UserId),
-    CONSTRAINT FK_RefreshTokens_ReplacedBy FOREIGN KEY (ReplacedByTokenId) REFERENCES identity.RefreshTokens(RefreshTokenId),
+    CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserId) REFERENCES [identity].Users(UserId),
+    CONSTRAINT FK_RefreshTokens_ReplacedBy FOREIGN KEY (ReplacedByTokenId) REFERENCES [identity].RefreshTokens(RefreshTokenId),
     CONSTRAINT CK_RefreshTokens_Expiry CHECK (ExpiresAtUtc > CreatedAtUtc)
 );
 
-CREATE INDEX IX_RefreshTokens_UserId ON identity.RefreshTokens(UserId);
+CREATE INDEX IX_RefreshTokens_UserId ON [identity].RefreshTokens(UserId);
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_Create
+CREATE OR ALTER PROCEDURE [identity].User_Create
     @PublicId uniqueidentifier,
     @Username nvarchar(100),
     @DisplayName nvarchar(200),
@@ -121,7 +121,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        INSERT identity.Users
+        INSERT [identity].Users
             (PublicId, Username, DisplayName, PasswordHash, IsActive, CreatedBy, UpdatedBy)
         VALUES
             (@PublicId, @Username, @DisplayName, @PasswordHash, @IsActive, @ActorUserId, @ActorUserId);
@@ -148,7 +148,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_GetByUsername
+CREATE OR ALTER PROCEDURE [identity].User_GetByUsername
     @Username nvarchar(100), @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
@@ -157,21 +157,21 @@ BEGIN
     BEGIN TRY
         SELECT UserId, PublicId, Username, DisplayName, PasswordHash, IsActive,
                FailedLoginCount, LockedUntilUtc, CreatedAtUtc, CreatedBy, UpdatedAtUtc, UpdatedBy
-        FROM identity.Users
+        FROM [identity].Users
         WHERE Username = @Username;
     END TRY
     BEGIN CATCH
         DECLARE @Message nvarchar(4000) = ERROR_MESSAGE();
         DECLARE @Number int = ERROR_NUMBER();
         EXEC audit.SystemError_Log @ErrorReference, @CorrelationId, 'DATABASE', @Message,
-            @Component = N'Identity', @Operation = N'USER.GET_BY_USERNAME', @ProcedureName = N'identity.User_GetByUsername',
+            @Component = N'Identity', @Operation = N'USER.GET_BY_USERNAME', @ProcedureName = N'[identity].User_GetByUsername',
             @ErrorNumber = @Number;
         THROW;
     END CATCH;
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_GetByPublicId
+CREATE OR ALTER PROCEDURE [identity].User_GetByPublicId
     @PublicId uniqueidentifier, @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
@@ -180,19 +180,19 @@ BEGIN
     BEGIN TRY
         SELECT UserId, PublicId, Username, DisplayName, IsActive,
                FailedLoginCount, LockedUntilUtc, CreatedAtUtc, CreatedBy, UpdatedAtUtc, UpdatedBy
-        FROM identity.Users
+        FROM [identity].Users
         WHERE PublicId = @PublicId;
     END TRY
     BEGIN CATCH
         DECLARE @Message nvarchar(4000) = ERROR_MESSAGE();
         EXEC audit.SystemError_Log @ErrorReference, @CorrelationId, 'DATABASE', @Message,
-            @Component = N'Identity', @Operation = N'USER.GET_BY_PUBLIC_ID', @ProcedureName = N'identity.User_GetByPublicId';
+            @Component = N'Identity', @Operation = N'USER.GET_BY_PUBLIC_ID', @ProcedureName = N'[identity].User_GetByPublicId';
         THROW;
     END CATCH;
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_SetActive
+CREATE OR ALTER PROCEDURE [identity].User_SetActive
     @PublicId uniqueidentifier, @IsActive bit, @ActorUserId uniqueidentifier,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -201,7 +201,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        UPDATE identity.Users
+        UPDATE [identity].Users
         SET IsActive = @IsActive, UpdatedAtUtc = SYSUTCDATETIME(), UpdatedBy = @ActorUserId
         WHERE PublicId = @PublicId;
         IF @@ROWCOUNT = 0 THROW 52001, 'User was not found.', 1;
@@ -223,7 +223,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_SetPassword
+CREATE OR ALTER PROCEDURE [identity].User_SetPassword
     @PublicId uniqueidentifier, @PasswordHash nvarchar(1000), @ActorUserId uniqueidentifier,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -232,7 +232,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        UPDATE identity.Users
+        UPDATE [identity].Users
         SET PasswordHash = @PasswordHash, FailedLoginCount = 0, LockedUntilUtc = NULL,
             UpdatedAtUtc = SYSUTCDATETIME(), UpdatedBy = @ActorUserId
         WHERE PublicId = @PublicId;
@@ -251,7 +251,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_RecordLoginSuccess
+CREATE OR ALTER PROCEDURE [identity].User_RecordLoginSuccess
     @UserId bigint, @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
@@ -259,7 +259,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        UPDATE identity.Users SET FailedLoginCount = 0, LockedUntilUtc = NULL, UpdatedAtUtc = SYSUTCDATETIME()
+        UPDATE [identity].Users SET FailedLoginCount = 0, LockedUntilUtc = NULL, UpdatedAtUtc = SYSUTCDATETIME()
         WHERE UserId = @UserId;
         EXEC audit.AuditLog_Create @CorrelationId, N'AUTH.LOGIN_SUCCESS', @EntityType = N'USER',
             @EntityId = @UserId, @Source = 'BACKEND';
@@ -275,7 +275,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.User_RecordLoginFailure
+CREATE OR ALTER PROCEDURE [identity].User_RecordLoginFailure
     @UserId bigint, @MaximumFailedAttempts int, @LockoutMinutes int,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -284,7 +284,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        UPDATE identity.Users
+        UPDATE [identity].Users
         SET FailedLoginCount = FailedLoginCount + 1,
             LockedUntilUtc = CASE WHEN FailedLoginCount + 1 >= @MaximumFailedAttempts
                 THEN DATEADD(MINUTE, @LockoutMinutes, SYSUTCDATETIME()) ELSE LockedUntilUtc END,
@@ -304,14 +304,14 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.Role_GetAll
+CREATE OR ALTER PROCEDURE [identity].Role_GetAll
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     BEGIN TRY
-        SELECT PublicId, Code, Name, IsActive FROM identity.Roles ORDER BY Code;
+        SELECT PublicId, Code, Name, IsActive FROM [identity].Roles ORDER BY Code;
     END TRY
     BEGIN CATCH
         DECLARE @Message nvarchar(4000) = ERROR_MESSAGE();
@@ -322,7 +322,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.Permission_GetByUser
+CREATE OR ALTER PROCEDURE [identity].Permission_GetByUser
     @UserId bigint, @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
@@ -330,10 +330,10 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         SELECT DISTINCT p.Code, p.Name
-        FROM identity.UserRoles ur
-        INNER JOIN identity.Roles r ON r.RoleId = ur.RoleId AND r.IsActive = 1
-        INNER JOIN identity.RolePermissions rp ON rp.RoleId = r.RoleId
-        INNER JOIN identity.Permissions p ON p.PermissionId = rp.PermissionId AND p.IsActive = 1
+        FROM [identity].UserRoles ur
+        INNER JOIN [identity].Roles r ON r.RoleId = ur.RoleId AND r.IsActive = 1
+        INNER JOIN [identity].RolePermissions rp ON rp.RoleId = r.RoleId
+        INNER JOIN [identity].Permissions p ON p.PermissionId = rp.PermissionId AND p.IsActive = 1
         WHERE ur.UserId = @UserId
         ORDER BY p.Code;
     END TRY
@@ -346,7 +346,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.UserRole_Assign
+CREATE OR ALTER PROCEDURE [identity].UserRole_Assign
     @UserPublicId uniqueidentifier, @RoleCode varchar(100), @ActorUserId uniqueidentifier,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -355,11 +355,11 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        DECLARE @UserId bigint = (SELECT UserId FROM identity.Users WHERE PublicId = @UserPublicId);
-        DECLARE @RoleId int = (SELECT RoleId FROM identity.Roles WHERE Code = @RoleCode AND IsActive = 1);
+        DECLARE @UserId bigint = (SELECT UserId FROM [identity].Users WHERE PublicId = @UserPublicId);
+        DECLARE @RoleId int = (SELECT RoleId FROM [identity].Roles WHERE Code = @RoleCode AND IsActive = 1);
         IF @UserId IS NULL OR @RoleId IS NULL THROW 52002, 'User or role was not found.', 1;
-        IF NOT EXISTS (SELECT 1 FROM identity.UserRoles WHERE UserId = @UserId AND RoleId = @RoleId)
-            INSERT identity.UserRoles (UserId, RoleId) VALUES (@UserId, @RoleId);
+        IF NOT EXISTS (SELECT 1 FROM [identity].UserRoles WHERE UserId = @UserId AND RoleId = @RoleId)
+            INSERT [identity].UserRoles (UserId, RoleId) VALUES (@UserId, @RoleId);
         EXEC audit.AuditLog_Create @CorrelationId, N'USER.ROLE_ASSIGN', @ActorUserId,
             N'USER', @UserPublicId, @Source = 'BACKEND';
         COMMIT TRANSACTION;
@@ -374,7 +374,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.UserRole_Remove
+CREATE OR ALTER PROCEDURE [identity].UserRole_Remove
     @UserPublicId uniqueidentifier, @RoleCode varchar(100), @ActorUserId uniqueidentifier,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -383,9 +383,9 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        DELETE ur FROM identity.UserRoles ur
-        INNER JOIN identity.Users u ON u.UserId = ur.UserId
-        INNER JOIN identity.Roles r ON r.RoleId = ur.RoleId
+        DELETE ur FROM [identity].UserRoles ur
+        INNER JOIN [identity].Users u ON u.UserId = ur.UserId
+        INNER JOIN [identity].Roles r ON r.RoleId = ur.RoleId
         WHERE u.PublicId = @UserPublicId AND r.Code = @RoleCode;
         EXEC audit.AuditLog_Create @CorrelationId, N'USER.ROLE_REMOVE', @ActorUserId,
             N'USER', @UserPublicId, @Source = 'BACKEND';
@@ -401,7 +401,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.RefreshToken_Create
+CREATE OR ALTER PROCEDURE [identity].RefreshToken_Create
     @UserId bigint, @TokenHash char(64), @ExpiresAtUtc datetime2(3),
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -409,7 +409,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     BEGIN TRY
-        INSERT identity.RefreshTokens (UserId, TokenHash, ExpiresAtUtc)
+        INSERT [identity].RefreshTokens (UserId, TokenHash, ExpiresAtUtc)
         OUTPUT inserted.RefreshTokenId
         VALUES (@UserId, @TokenHash, @ExpiresAtUtc);
     END TRY
@@ -422,7 +422,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.RefreshToken_GetValid
+CREATE OR ALTER PROCEDURE [identity].RefreshToken_GetValid
     @TokenHash char(64), @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
 BEGIN
@@ -430,8 +430,8 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         SELECT rt.RefreshTokenId, rt.UserId, rt.ExpiresAtUtc, u.PublicId, u.Username, u.DisplayName, u.IsActive
-        FROM identity.RefreshTokens rt
-        INNER JOIN identity.Users u ON u.UserId = rt.UserId
+        FROM [identity].RefreshTokens rt
+        INNER JOIN [identity].Users u ON u.UserId = rt.UserId
         WHERE rt.TokenHash = @TokenHash AND rt.RevokedAtUtc IS NULL AND rt.ExpiresAtUtc > SYSUTCDATETIME();
     END TRY
     BEGIN CATCH
@@ -443,7 +443,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.RefreshToken_Revoke
+CREATE OR ALTER PROCEDURE [identity].RefreshToken_Revoke
     @TokenHash char(64), @ActorUserId uniqueidentifier = NULL,
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -452,7 +452,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        UPDATE identity.RefreshTokens SET RevokedAtUtc = COALESCE(RevokedAtUtc, SYSUTCDATETIME())
+        UPDATE [identity].RefreshTokens SET RevokedAtUtc = COALESCE(RevokedAtUtc, SYSUTCDATETIME())
         WHERE TokenHash = @TokenHash;
         EXEC audit.AuditLog_Create @CorrelationId, N'AUTH.LOGOUT', @ActorUserId,
             N'REFRESH_TOKEN', @TokenHash, @Source = 'BACKEND';
@@ -468,7 +468,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE identity.RefreshToken_Rotate
+CREATE OR ALTER PROCEDURE [identity].RefreshToken_Rotate
     @CurrentTokenHash char(64), @NewTokenHash char(64), @ExpiresAtUtc datetime2(3),
     @CorrelationId uniqueidentifier, @ErrorReference varchar(40)
 AS
@@ -479,13 +479,13 @@ BEGIN
         BEGIN TRANSACTION;
         DECLARE @CurrentId bigint, @UserId bigint, @NewId bigint;
         SELECT @CurrentId = RefreshTokenId, @UserId = UserId
-        FROM identity.RefreshTokens WITH (UPDLOCK, HOLDLOCK)
+        FROM [identity].RefreshTokens WITH (UPDLOCK, HOLDLOCK)
         WHERE TokenHash = @CurrentTokenHash AND RevokedAtUtc IS NULL AND ExpiresAtUtc > SYSUTCDATETIME();
         IF @CurrentId IS NULL THROW 52003, 'Refresh token is invalid.', 1;
-        INSERT identity.RefreshTokens (UserId, TokenHash, ExpiresAtUtc)
+        INSERT [identity].RefreshTokens (UserId, TokenHash, ExpiresAtUtc)
         VALUES (@UserId, @NewTokenHash, @ExpiresAtUtc);
         SET @NewId = SCOPE_IDENTITY();
-        UPDATE identity.RefreshTokens
+        UPDATE [identity].RefreshTokens
         SET RevokedAtUtc = SYSUTCDATETIME(), ReplacedByTokenId = @NewId
         WHERE RefreshTokenId = @CurrentId;
         EXEC audit.AuditLog_Create @CorrelationId, N'AUTH.REFRESH', @EntityType = N'USER',

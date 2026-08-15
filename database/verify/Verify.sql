@@ -91,27 +91,27 @@ DECLARE @RequiredIdentityObjects TABLE
 
 INSERT @RequiredIdentityObjects (ObjectName, ObjectType)
 VALUES
-    (N'identity.Users', N'U'),
-    (N'identity.Roles', N'U'),
-    (N'identity.Permissions', N'U'),
-    (N'identity.UserRoles', N'U'),
-    (N'identity.RolePermissions', N'U'),
-    (N'identity.RefreshTokens', N'U'),
-    (N'identity.User_Create', N'P'),
-    (N'identity.User_GetByUsername', N'P'),
-    (N'identity.User_GetByPublicId', N'P'),
-    (N'identity.User_SetActive', N'P'),
-    (N'identity.User_SetPassword', N'P'),
-    (N'identity.User_RecordLoginSuccess', N'P'),
-    (N'identity.User_RecordLoginFailure', N'P'),
-    (N'identity.Role_GetAll', N'P'),
-    (N'identity.Permission_GetByUser', N'P'),
-    (N'identity.UserRole_Assign', N'P'),
-    (N'identity.UserRole_Remove', N'P'),
-    (N'identity.RefreshToken_Create', N'P'),
-    (N'identity.RefreshToken_GetValid', N'P'),
-    (N'identity.RefreshToken_Revoke', N'P'),
-    (N'identity.RefreshToken_Rotate', N'P');
+    (N'[identity].Users', N'U'),
+    (N'[identity].Roles', N'U'),
+    (N'[identity].Permissions', N'U'),
+    (N'[identity].UserRoles', N'U'),
+    (N'[identity].RolePermissions', N'U'),
+    (N'[identity].RefreshTokens', N'U'),
+    (N'[identity].User_Create', N'P'),
+    (N'[identity].User_GetByUsername', N'P'),
+    (N'[identity].User_GetByPublicId', N'P'),
+    (N'[identity].User_SetActive', N'P'),
+    (N'[identity].User_SetPassword', N'P'),
+    (N'[identity].User_RecordLoginSuccess', N'P'),
+    (N'[identity].User_RecordLoginFailure', N'P'),
+    (N'[identity].Role_GetAll', N'P'),
+    (N'[identity].Permission_GetByUser', N'P'),
+    (N'[identity].UserRole_Assign', N'P'),
+    (N'[identity].UserRole_Remove', N'P'),
+    (N'[identity].RefreshToken_Create', N'P'),
+    (N'[identity].RefreshToken_GetValid', N'P'),
+    (N'[identity].RefreshToken_Revoke', N'P'),
+    (N'[identity].RefreshToken_Rotate', N'P');
 
 DECLARE @MissingIdentityObject sysname =
 (
