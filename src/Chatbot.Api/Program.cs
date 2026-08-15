@@ -20,7 +20,7 @@ builder.Services.AddScoped<UserAdminService>();
 builder.Services
     .AddAuthentication("Bearer")
     .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("Bearer", _ => { });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(UserPermissions.AddPolicies);
 
 var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();

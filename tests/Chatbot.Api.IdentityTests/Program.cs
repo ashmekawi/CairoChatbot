@@ -1,11 +1,59 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Chatbot.Api.Identity;
 using Chatbot.Core.Errors;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ApiUser = Chatbot.Api.Identity.IdentityUser;
 
-await IdentityTests.RunAsync();
+if (args.Contains("authorization", StringComparer.OrdinalIgnoreCase))
+{
+    await AuthorizationTests.RunAsync();
+}
+else
+{
+    await IdentityTests.RunAsync();
+}
+
+internal static class AuthorizationTests
+{
+    public static async Task RunAsync()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAuthorization(UserPermissions.AddPolicies);
+        await using var provider = services.BuildServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+
+        var withoutPermission = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())], "Test"));
+        var denied = await authorization.AuthorizeAsync(withoutPermission, null, UserPermissions.Read);
+        var deniedStatus = denied.Succeeded ? 200 : 403;
+        Assert(deniedStatus == 403, "Authenticated user without permission was not forbidden.");
+
+        var withPermission = new ClaimsPrincipal(
+            new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim("permission", UserPermissions.Read)
+            ],
+            "Test"));
+        var allowed = await authorization.AuthorizeAsync(withPermission, null, UserPermissions.Read);
+        Assert(allowed.Succeeded, "User with the required permission was not allowed.");
+
+        Console.WriteLine("V0002 permission authorization tests passed.");
+    }
+
+    private static void Assert(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+}
 
 internal static class IdentityTests
 {

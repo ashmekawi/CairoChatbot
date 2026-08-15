@@ -22,6 +22,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
     public sealed record PasswordRequest([property: Required, MinLength(12), StringLength(500)] string Password);
     public sealed record RoleRequest([property: Required, StringLength(100)] string RoleCode);
 
+    [Authorize(Policy = UserPermissions.Create)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateUserRequest request, CancellationToken cancellationToken)
     {
@@ -36,6 +37,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
         return CreatedAtAction(nameof(Get), new { publicId }, new { publicId });
     }
 
+    [Authorize(Policy = UserPermissions.Read)]
     [HttpGet("{publicId:guid}")]
     public async Task<IActionResult> Get(Guid publicId, CancellationToken cancellationToken)
     {
@@ -51,6 +53,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
         });
     }
 
+    [Authorize(Policy = UserPermissions.Activate)]
     [HttpPatch("{publicId:guid}/active")]
     public async Task<IActionResult> SetActive(Guid publicId, ActiveRequest request, CancellationToken cancellationToken)
     {
@@ -58,6 +61,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = UserPermissions.ResetPassword)]
     [HttpPost("{publicId:guid}/password")]
     public async Task<IActionResult> SetPassword(Guid publicId, PasswordRequest request, CancellationToken cancellationToken)
     {
@@ -65,6 +69,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = UserPermissions.ManageRoles)]
     [HttpPost("{publicId:guid}/roles")]
     public async Task<IActionResult> AssignRole(Guid publicId, RoleRequest request, CancellationToken cancellationToken)
     {
@@ -72,6 +77,7 @@ public sealed class UsersController(UserAdminService users) : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = UserPermissions.ManageRoles)]
     [HttpDelete("{publicId:guid}/roles/{roleCode}")]
     public async Task<IActionResult> RemoveRole(Guid publicId, string roleCode, CancellationToken cancellationToken)
     {

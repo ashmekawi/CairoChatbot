@@ -63,6 +63,31 @@ CREATE TABLE identity.RolePermissions
     CONSTRAINT FK_RolePermissions_Permissions FOREIGN KEY (PermissionId) REFERENCES identity.Permissions(PermissionId)
 );
 
+INSERT identity.Permissions (Code, Name)
+VALUES
+    ('users.read', N'Read users'),
+    ('users.create', N'Create users'),
+    ('users.activate', N'Activate or deactivate users'),
+    ('users.password.reset', N'Reset user passwords'),
+    ('users.roles.manage', N'Manage user roles');
+
+IF EXISTS (SELECT 1 FROM identity.Roles WHERE Code = 'ADMIN')
+BEGIN
+    INSERT identity.RolePermissions (RoleId, PermissionId)
+    SELECT role.RoleId, permission.PermissionId
+    FROM identity.Roles role
+    CROSS JOIN identity.Permissions permission
+    WHERE role.Code = 'ADMIN'
+      AND permission.Code IN
+      (
+          'users.read',
+          'users.create',
+          'users.activate',
+          'users.password.reset',
+          'users.roles.manage'
+      );
+END;
+
 CREATE TABLE identity.RefreshTokens
 (
     RefreshTokenId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_RefreshTokens PRIMARY KEY,
