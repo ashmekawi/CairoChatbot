@@ -17,6 +17,7 @@ coverage/
 *.nupkg
 *.snupkg
 .nuget/
+.dotnet/
 
 # Node / Next.js
 node_modules/
