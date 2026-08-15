@@ -1,0 +1,2 @@
+V0001 source package. Create the Visual Studio solution and add the projects under src/ when .NET SDK is available.
+Target: .NET 8 LTS or later approved runtime.

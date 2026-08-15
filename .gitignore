@@ -1,0 +1,68 @@
+# Visual Studio / .NET
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Aa]rtifacts/
+[Tt]est[Rr]esults/
+coverage/
+*.coverage
+*.coveragexml
+*.nupkg
+*.snupkg
+.nuget/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+.npm/
+.yarn/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Docker local state and overrides
+.docker/
+docker-data/
+docker-compose.override.yml
+compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# Local database files and backups
+backups/
+*.bak
+*.bacpac
+*.mdf
+*.ndf
+*.ldf
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
