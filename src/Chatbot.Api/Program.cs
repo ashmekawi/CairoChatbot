@@ -3,6 +3,7 @@ using Chatbot.Api.Errors;
 using Chatbot.Api.Identity;
 using Chatbot.Api.Logging;
 using Chatbot.Api.Middleware;
+using Chatbot.Api.Projects;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
@@ -17,10 +18,21 @@ builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<IIdentityStore, SqlIdentityStore>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserAdminService>();
+builder.Services.AddScoped<SqlProjectStore>();
+builder.Services.AddScoped<IProjectStore>(provider => provider.GetRequiredService<SqlProjectStore>());
+builder.Services.AddScoped<IChannelStore>(provider => provider.GetRequiredService<SqlProjectStore>());
+builder.Services.AddScoped<IBusinessHoursStore>(provider => provider.GetRequiredService<SqlProjectStore>());
+builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<ChannelService>();
+builder.Services.AddScoped<BusinessHoursService>();
 builder.Services
     .AddAuthentication("Bearer")
     .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("Bearer", _ => { });
-builder.Services.AddAuthorization(UserPermissions.AddPolicies);
+builder.Services.AddAuthorization(options =>
+{
+    UserPermissions.AddPolicies(options);
+    ProjectPermissions.AddPolicies(options);
+});
 
 var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();

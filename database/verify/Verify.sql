@@ -128,3 +128,58 @@ BEGIN
 END;
 
 SELECT N'V0002 verification passed.' AS Result;
+
+IF SCHEMA_ID(N'project') IS NULL
+    THROW 51201, 'project schema is missing.', 1;
+
+DECLARE @RequiredProjectObjects TABLE
+(
+    ObjectName sysname NOT NULL,
+    ObjectType char(2) NOT NULL
+);
+
+INSERT @RequiredProjectObjects (ObjectName, ObjectType)
+VALUES
+    (N'[project].Projects', N'U'),
+    (N'[project].Channels', N'U'),
+    (N'[project].BusinessHours', N'U'),
+    (N'[project].Project_Create', N'P'),
+    (N'[project].Project_GetByPublicId', N'P'),
+    (N'[project].Project_Update', N'P'),
+    (N'[project].Project_SetActive', N'P'),
+    (N'[project].Channel_Create', N'P'),
+    (N'[project].Channel_GetByPublicId', N'P'),
+    (N'[project].Channel_Update', N'P'),
+    (N'[project].Channel_SetActive', N'P'),
+    (N'[project].BusinessHours_GetByProject', N'P'),
+    (N'[project].BusinessHours_Upsert', N'P');
+
+DECLARE @MissingProjectObject sysname =
+(
+    SELECT TOP (1) ObjectName
+    FROM @RequiredProjectObjects
+    WHERE OBJECT_ID(ObjectName, ObjectType) IS NULL
+    ORDER BY ObjectName
+);
+
+IF @MissingProjectObject IS NOT NULL
+BEGIN
+    DECLARE @MissingProjectMessage nvarchar(2048) = CONCAT(@MissingProjectObject, ' is missing.');
+    THROW 51202, @MissingProjectMessage, 1;
+END;
+
+IF EXISTS
+(
+    SELECT required.Code
+    FROM
+    (
+        VALUES ('projects.read'), ('projects.manage'), ('channels.read'), ('channels.manage')
+    ) required(Code)
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM [identity].Permissions permission WHERE permission.Code = required.Code
+    )
+)
+    THROW 51203, 'A V0003 permission is missing.', 1;
+
+SELECT N'V0003 verification passed.' AS Result;
