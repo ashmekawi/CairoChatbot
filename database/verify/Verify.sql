@@ -44,7 +44,13 @@ BEGIN TRY
     THROW 51013, 'Expected SQL failure did not occur.', 1;
 END TRY
 BEGIN CATCH
-    IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    DECLARE @ErrorNumber int = ERROR_NUMBER();
+    DECLARE @ErrorSeverity int = ERROR_SEVERITY();
+    DECLARE @ErrorState int = ERROR_STATE();
+    DECLARE @ErrorLine int = ERROR_LINE();
+
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
 
     EXEC audit.SystemError_Log
         @ErrorReference = @ErrorReference,
@@ -53,10 +59,10 @@ BEGIN CATCH
         @Component = N'DatabaseVerify',
         @Operation = N'RollbackPersistence',
         @ProcedureName = N'Verify.sql',
-        @ErrorNumber = ERROR_NUMBER(),
-        @ErrorSeverity = ERROR_SEVERITY(),
-        @ErrorState = ERROR_STATE(),
-        @ErrorLine = ERROR_LINE(),
+        @ErrorNumber = @ErrorNumber,
+        @ErrorSeverity = @ErrorSeverity,
+        @ErrorState = @ErrorState,
+        @ErrorLine = @ErrorLine,
         @ErrorMessage = N'Verification test record';
 END CATCH;
 
