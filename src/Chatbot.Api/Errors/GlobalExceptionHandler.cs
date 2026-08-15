@@ -18,6 +18,20 @@ public sealed class GlobalExceptionHandler(IApplicationErrorLogger errorLogger) 
         if (exception is AppException app)
         {
             var appErrorReference = app.ErrorReference ?? ErrorReferences.Create();
+            try
+            {
+                await errorLogger.LogAsync(
+                    exception,
+                    context,
+                    "BACKEND",
+                    appErrorReference,
+                    cancellationToken: cancellationToken);
+            }
+            catch
+            {
+                // A logging failure must not replace or expose the original exception.
+            }
+
             context.Response.StatusCode = app.StatusCode;
             context.Response.ContentType = "application/problem+json";
             await context.Response.WriteAsJsonAsync(new ProblemDetails

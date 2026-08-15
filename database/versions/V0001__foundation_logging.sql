@@ -151,28 +151,33 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    IF NULLIF(LTRIM(RTRIM(@ErrorReference)), '') IS NULL THROW 50001, 'ErrorReference is required.', 1;
-    IF NULLIF(LTRIM(RTRIM(@ErrorMessage)), '') IS NULL THROW 50002, 'ErrorMessage is required.', 1;
-    IF @Source NOT IN ('DATABASE','BACKEND','FRONTEND','WORKER','INTEGRATION','DEPLOYMENT') THROW 50003, 'Invalid Source.', 1;
-    IF @ContextJson IS NOT NULL AND ISJSON(@ContextJson) <> 1 THROW 50004, 'ContextJson must be valid JSON.', 1;
+    BEGIN TRY
+        IF NULLIF(LTRIM(RTRIM(@ErrorReference)), '') IS NULL THROW 50001, 'ErrorReference is required.', 1;
+        IF NULLIF(LTRIM(RTRIM(@ErrorMessage)), '') IS NULL THROW 50002, 'ErrorMessage is required.', 1;
+        IF @Source NOT IN ('DATABASE','BACKEND','FRONTEND','WORKER','INTEGRATION','DEPLOYMENT') THROW 50003, 'Invalid Source.', 1;
+        IF @ContextJson IS NOT NULL AND ISJSON(@ContextJson) <> 1 THROW 50004, 'ContextJson must be valid JSON.', 1;
 
-    IF EXISTS (SELECT 1 FROM audit.SystemErrorLogs WHERE ErrorReference = @ErrorReference)
-        RETURN;
+        IF EXISTS (SELECT 1 FROM audit.SystemErrorLogs WHERE ErrorReference = @ErrorReference)
+            RETURN;
 
-    INSERT audit.SystemErrorLogs
-    (
-        ErrorReference, CorrelationId, Source, Component, Operation, ProcedureName,
-        ErrorNumber, ErrorSeverity, ErrorState, ErrorLine, ExceptionType, ErrorMessage, StackTrace,
-        ActorUserId, ConversationId, MessageId, JobId, RequestPath, HttpMethod,
-        ContextJson, HostName, ApplicationName, EnvironmentName
-    )
-    VALUES
-    (
-        @ErrorReference, @CorrelationId, @Source, @Component, @Operation, @ProcedureName,
-        @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorLine, @ExceptionType, @ErrorMessage, @StackTrace,
-        @ActorUserId, @ConversationId, @MessageId, @JobId, @RequestPath, @HttpMethod,
-        @ContextJson, @HostName, @ApplicationName, @EnvironmentName
-    );
+        INSERT audit.SystemErrorLogs
+        (
+            ErrorReference, CorrelationId, Source, Component, Operation, ProcedureName,
+            ErrorNumber, ErrorSeverity, ErrorState, ErrorLine, ExceptionType, ErrorMessage, StackTrace,
+            ActorUserId, ConversationId, MessageId, JobId, RequestPath, HttpMethod,
+            ContextJson, HostName, ApplicationName, EnvironmentName
+        )
+        VALUES
+        (
+            @ErrorReference, @CorrelationId, @Source, @Component, @Operation, @ProcedureName,
+            @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorLine, @ExceptionType, @ErrorMessage, @StackTrace,
+            @ActorUserId, @ConversationId, @MessageId, @JobId, @RequestPath, @HttpMethod,
+            @ContextJson, @HostName, @ApplicationName, @EnvironmentName
+        );
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -190,11 +195,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    IF @BeforeJson IS NOT NULL AND ISJSON(@BeforeJson) <> 1 THROW 50005, 'BeforeJson must be valid JSON.', 1;
-    IF @AfterJson IS NOT NULL AND ISJSON(@AfterJson) <> 1 THROW 50006, 'AfterJson must be valid JSON.', 1;
+    BEGIN TRY
+        IF @BeforeJson IS NOT NULL AND ISJSON(@BeforeJson) <> 1 THROW 50005, 'BeforeJson must be valid JSON.', 1;
+        IF @AfterJson IS NOT NULL AND ISJSON(@AfterJson) <> 1 THROW 50006, 'AfterJson must be valid JSON.', 1;
 
-    INSERT audit.AuditLogs(CorrelationId, ActorUserId, Action, EntityType, EntityId, BeforeJson, AfterJson, Source, IpAddress)
-    VALUES(@CorrelationId, @ActorUserId, @Action, @EntityType, @EntityId, @BeforeJson, @AfterJson, @Source, @IpAddress);
+        INSERT audit.AuditLogs(CorrelationId, ActorUserId, Action, EntityType, EntityId, BeforeJson, AfterJson, Source, IpAddress)
+        VALUES(@CorrelationId, @ActorUserId, @Action, @EntityType, @EntityId, @BeforeJson, @AfterJson, @Source, @IpAddress);
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -211,9 +221,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    IF @DetailsJson IS NOT NULL AND ISJSON(@DetailsJson) <> 1 THROW 50007, 'DetailsJson must be valid JSON.', 1;
+    BEGIN TRY
+        IF @DetailsJson IS NOT NULL AND ISJSON(@DetailsJson) <> 1 THROW 50007, 'DetailsJson must be valid JSON.', 1;
 
-    INSERT audit.OperationalLogs(CorrelationId, Component, Operation, Status, ReferenceType, ReferenceId, DurationMs, DetailsJson)
-    VALUES(@CorrelationId, @Component, @Operation, @Status, @ReferenceType, @ReferenceId, @DurationMs, @DetailsJson);
+        INSERT audit.OperationalLogs(CorrelationId, Component, Operation, Status, ReferenceType, ReferenceId, DurationMs, DetailsJson)
+        VALUES(@CorrelationId, @Component, @Operation, @Status, @ReferenceType, @ReferenceId, @DurationMs, @DetailsJson);
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH;
 END;
 GO
